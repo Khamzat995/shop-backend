@@ -6,6 +6,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    imageURL: {
+      type: String,
+      required: false,
+    },
     price: {
       type: Number,
       required: true,
@@ -14,13 +18,18 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       required: true,
     },
-    category: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
     },
-    brand: {
+    brandId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Brand",
+    },
+    sold: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
     },
   },
   { timestamps: true }

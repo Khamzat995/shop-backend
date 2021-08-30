@@ -1,31 +1,29 @@
 const Category = require("../models/Category.model");
 
 module.exports.categoriesController = {
-  getAllCategories: async (req, res) => {
-    try {
-      const categories = await Category.find();
-
-      return res.json(categories);
-    } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
-      });
-    }
-  },
+  // allCategories: async (req, res) => {
+  //   try {
+  //     const category = await Category.find();
+  //
+  //     res.render("home", {
+  //       product: category,
+  //     });
+  //   } catch (e) {
+  //     return res.status(400).json({
+  //       error: e.toString(),
+  //     });
+  //   }
+  // },
 
   getCategoryById: async (req, res) => {
-    const { id } = req.param;
-
+    const { id } = req.params;
     try {
-      const category = await Category.findById(id);
-
-      if (!category) {
-        return res.status(404).json({
-          error: "Категория с таким ID не найдена",
-        });
-      }
-
-      return res.json(category);
+    // const limitValue = req.query.limit || 3;
+    // const skipValue = req.query.skip || 0;
+    const category = await Category.findById(id);
+    res.render("category-product", {
+      product: category,
+    });
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),
@@ -76,29 +74,13 @@ module.exports.categoriesController = {
   },
 
   editCategory: async (req, res) => {
-    const { name } = req.body;
-    const { id } = req.params;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Необходимо указать новое название категории",
-      });
-    }
-
     try {
-      const edited = await Category.findByIdAndUpdate(
-        id,
-        { name },
-        { new: true }
+      const patch = await Category.findOneAndUpdate(
+        { _id: req.params.id },
+        { ...req.body }
       );
-
-      if (!edited) {
-        return res.status(400).json({
-          error: "Не удалось изменить название. Проверь правильность ID",
-        });
-      }
-
-      return res.json(edited);
+      await patch.save();
+      res.json("Категория успешно изменена");
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),

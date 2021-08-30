@@ -3,10 +3,10 @@ const { brandsController } = require("../controllers/brands.controller");
 
 const router = Router();
 
-router.post("/admin/brand", brandsController.createBrand);
-router.get("/brands", brandsController.getAllBrands);
-router.get("/brand/:id", brandsController.getBrandById);
-router.patch("/admin/brand/:id", brandsController.editBrand);
-router.delete("/admin/brand/:id", brandsController.removeBrand);
+router.post("/", brandsController.createBrand);
+router.get("/", brandsController.allBrands);
+router.get("/:id", brandsController.getBrandById);
+router.patch("/:id", brandsController.editBrand);
+router.delete("/:id", brandsController.removeBrand);
 
 module.exports = router;

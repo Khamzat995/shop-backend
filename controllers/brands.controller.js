@@ -1,11 +1,13 @@
 const Brand = require("../models/Brand.model");
 
 module.exports.brandsController = {
-  getAllBrands: async (req, res) => {
+  allBrands: async (req, res) => {
     try {
       const brands = await Brand.find();
 
-      return res.json(brands);
+      res.render("home", {
+        product: brands,
+      });
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),
@@ -14,18 +16,13 @@ module.exports.brandsController = {
   },
 
   getBrandById: async (req, res) => {
-    const { id } = req.param;
+    const { id } = req.params;
 
     try {
       const brand = await Brand.findById(id);
-
-      if (!brand) {
-        return res.status(404).json({
-          error: "Бранд с таким ID не найден",
-        });
-      }
-
-      return res.json(brand);
+      res.render("brand-product", {
+        product: brand,
+      });
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),
@@ -76,25 +73,13 @@ module.exports.brandsController = {
   },
 
   editBrand: async (req, res) => {
-    const { name } = req.body;
-    const { id } = req.params;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Необходимо указать новое название бренда",
-      });
-    }
-
     try {
-      const edited = await Brand.findByIdAndUpdate(id, { name }, { new: true });
-
-      if (!edited) {
-        return res.status(400).json({
-          error: "Не удалось изменить название. Проверь правильность ID",
-        });
-      }
-
-      return res.json(edited);
+      const patch = await Brand.findOneAndUpdate(
+        { _id: req.params.id },
+        { ...req.body }
+      );
+      await patch.save();
+      res.json("Бранд успешно изменен");
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),

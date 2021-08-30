@@ -1,11 +1,17 @@
 const Product = require("../models/Product.model");
+const User = require("../models/User.model");
+const Category = require("../models/Category.model");
+const Brand = require("../models/Brand.model")
 
 module.exports.productsController = {
-  getAllProducts: async (req, res) => {
+  allProducts: async (req, res) => {
     try {
-      const products = await Product.find().populate("category", "name");
-
-      return res.json(products);
+      const limitValue = req.query.limit || 9;
+      const skipValue = req.query.skip || 0;
+      const get = await Product.find().populate("categoryId").populate("brandId").lean().limit(limitValue).skip(skipValue);
+      res.render("home", {
+        product: get,
+      });
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),
@@ -13,115 +19,76 @@ module.exports.productsController = {
     }
   },
 
-  getProductsByCategoryId: async (req, res) => {
-    const { id } = req.params;
-
+  getProductCat: async (req, res) => {
     try {
-      const products = await Product.find({ category: id }).populate(
-        "category",
-        "name"
-      );
-
-      return res.json(products);
-    } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
+      const productCat = await Product.find({ categoryId: req.params.id }).lean();
+      const cat = await Category.find().lean();
+      res.render("category-product", {
+        product: productCat,
+        category: cat,
       });
+    } catch (e) {
+      res.json(e.message);
     }
   },
 
-  getProductsByBrandId: async (req, res) => {
-    const { id } = req.params;
-
+  getProductBrand: async (req, res) => {
     try {
-      const products = await Product.find({ brand: id }).populate(
-        "brand",
-        "name"
-      );
-
-      return res.json(products);
-    } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
+      const productBrand = await Product.find({ brandId: req.params.id }).lean();
+      const brand = await Brand.find().lean();
+      res.render("brand-product", {
+        product: productBrand,
+        brand: brand,
       });
+    } catch (e) {
+      res.json(e.message);
     }
   },
 
-  getProductById: async (req, res) => {
-    const { id } = req.params;
-
+  getProductId: async (req, res) => {
     try {
-      const product = await Product.findById(id).populate("category", "name");
-
-      if (!product) {
-        return res.status(404).json({
-          error: "Продукт с таким ID не найден",
-        });
-      }
-
-      return res.json(product);
-    } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
+      const product = await Product.findById(req.params.id).lean();
+      console.log(product);
+      res.render("single-product", {
+        post: product,
       });
+    } catch (e) {
+      console.log(e.message);
     }
   },
 
   createProduct: async (req, res) => {
-    const { name, price, availability, category, brand } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Необходимо указать название нового продукта",
-      });
-    }
-
-    if (!price || price < 0) {
-      return res.status(400).json({
-        error: "Необходимо указать цену нового продукта",
-      });
-    }
-
-    if (!availability || availability === false) {
-      return res.status(400).json({
-        error: "Продукта нет в начилии",
-      });
-    }
-
-    if (!category) {
-      return res.status(400).json({
-        error: "Необходимо указать категорию нового продукта",
-      });
-    }
-
-    if (!brand) {
-      return res.status(400).json({
-        error: "Необходимо указать бренд нового продукта",
-      });
-    }
-
     try {
       const product = await new Product({
-        name,
-        price,
-        availability,
-        category,
-        brand,
+        name: req.body.name,
+        imageURL: req.body.imageURL,
+        price: req.body.price,
+        availability: req.body.availability,
+        categoryId: req.body.categoryId,
+        brandId: req.body.brandId,
+        sold: req.body.sold
       });
-
-      // if (image) {
-      //   product.image = image;
-      // }
-
       await product.save();
-
-      return res.json(product);
+      res.json("Product успешно добавлен");
     } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
-      });
+      console.log(e.message);
     }
   },
+
+  editProduct: async (req, res) => {
+    try {
+      const patch = await Product.findOneAndUpdate(
+        { _id: req.params.id },
+        { ...req.body }
+      );
+      await patch.save();
+      res.json("Product успешно изменен");
+    } catch (e) {
+      console.log(e.message);
+    }
+  },
+
+
 
   removeProduct: async (req, res) => {
     const { id } = req.params;
@@ -134,7 +101,6 @@ module.exports.productsController = {
           error: "Не удалось удалить продукт. Укажите верный ID",
         });
       }
-
       return res.json({
         message: "Продукт успешно удален",
       });
@@ -145,58 +111,17 @@ module.exports.productsController = {
     }
   },
 
-  editProduct: async (req, res) => {
-    const { name, price, availability, category, brand } = req.body;
-    const { id } = req.params;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Необходимо указать название нового продукта",
-      });
-    }
-
-    if (!price || price < 0) {
-      return res.status(400).json({
-        error: "Необходимо указать цену нового продукта",
-      });
-    }
-
-    if (!availability || availability === false) {
-      return res.status(400).json({
-        error: "Продукта нет в начилии",
-      });
-    }
-
-    if (!category) {
-      return res.status(400).json({
-        error: "Необходимо указать категорию нового продукта",
-      });
-    }
-
-    if (!brand) {
-      return res.status(400).json({
-        error: "Необходимо указать бренд нового продукта",
-      });
-    }
-
+  takeProduct: async (req, res) => {
     try {
-      const edited = await Product.findByIdAndUpdate(
-        id,
-        { name, price, availability, category, brand },
-        { new: true }
-      );
-
-      if (!edited) {
-        return res.status(400).json({
-          error: "Не удалось изменить название. Проверь правильность ID",
-        });
-      }
-
-      return res.json(edited);
-    } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
+      await User.findByIdAndUpdate(req.params.userId, {
+        $pull: { bayProduct: req.params.productId },
       });
+      await Product.findByIdAndUpdate(req.params.productId, {
+        sold: null,
+      });
+      res.redirect(`/admin/user/${req.params.productId}`)
+    } catch (e) {
+      res.json(e.message);
     }
   },
 };

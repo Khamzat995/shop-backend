@@ -1,23 +1,46 @@
 const User = require("../models/User.model");
+const Product = require("../models/Product.model");
 
 module.exports.userController = {
   createUser: async (req, res) => {
-    const { name } = req.body;
+    const { name, imageURL, buyProducts, cost, quantity, modifiedOn } = req.body;
 
     if (!name) {
       return res.status(400).json({
         error: "Необходимо указать имя покупателя",
       });
     }
-
     try {
-      const user = await User.create({ name });
-
-      return res.json(user);
+       await User.create({
+        name,
+        imageURL,
+        buyProducts,
+        cost,
+        quantity,
+        modifiedOn
+      });
+      return res.json("Пользователь успешно добавлен");
     } catch (e) {
       return res.status(400).json({
         error: e.toString(),
       });
+    }
+  },
+
+  getUserId: async (req, res) => {
+    try {
+      let user = [];
+
+      if(req.params.id) {
+        user = await User.find({ _id: req.params.id }).lean();
+      } else {
+        user = await User.find({}).lean();
+      }
+      res.render("user-product", {
+        user,
+      });
+    } catch (e) {
+      console.log(e.message);
     }
   },
 
@@ -32,7 +55,6 @@ module.exports.userController = {
           error: "Не удалось удалить покупателя. Укажите верный ID",
         });
       }
-
       return res.json({
         message: "Покупатель успешно удален",
       });
@@ -43,42 +65,64 @@ module.exports.userController = {
     }
   },
 
-  getAllUser: async (req, res) => {
+  editUser: async (req, res) => {
     try {
-      const user = await User.find();
-
-      return res.json(user);
+      const patch = await User.findOneAndUpdate(
+        { _id: req.params.id },
+        { ...req.body }
+      );
+      await patch.save();
+      res.json("User успешно изменен");
     } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
-      });
+      console.log(e.message);
     }
   },
 
-  editUser: async (req, res) => {
-    const { name } = req.body;
-    const { id } = req.params;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "Необходимо указать новое имя user",
-      });
-    }
-
+  buyProduct: async (req, res) => {
     try {
-      const edited = await User.findByIdAndUpdate(id, { name }, { new: true });
+      const product = await Product.findById(req.params.productId).lean();
+      const user = await User.findByIdAndUpdate(req.params.userId).lean();
 
-      if (!edited) {
-        return res.status(400).json({
-          error: "Не удалось изменить user. Проверь правильность ID",
-        });
+      if (product.sold) {
+        res.json("Товар уже продан");
       }
 
-      return res.json(edited);
+      else if (user.buyProducts.length > 5) {
+        res.json("Нельзя покупать больше 5 продуктов одновременно");
+      } else {
+        const arr = await User.findByIdAndUpdate(req.params.userId, {
+          $push: {
+            buyProducts: req.params.productId,
+            name: req.params.name,
+          },
+        }).lean();
+        await Product.findByIdAndUpdate(req.params.productId, {
+          sold: req.params.productId,
+        });
+        res.json("Товар успешно продан")
+      }
     } catch (e) {
-      return res.status(400).json({
-        error: e.toString(),
-      });
+      res.json(e.message);
     }
   },
+
+  returnProduct: async (req, res) => {
+    try {
+      const product = await Product.findById(req.params.productId);
+      const user = await User.findByIdAndUpdate(req.params.userId);
+
+      await Product.findByIdAndUpdate(req.params.productId, {
+        sold: null,
+      });
+      await User.findByIdAndUpdate(req.params.userId, {
+        $pull: {
+          buyProduct: req.params.productId,
+        },
+      });
+      res.redirect(`/users/${req.params.userId}`)
+    } catch (e) {
+      res.json(e.message);
+    }
+  },
+
 };
